@@ -1,17 +1,42 @@
-# LangGraph Cloud Example
+# Resume AI Agent System
 
-![](static/agent_ui.png)
 
-This is an example agent to deploy with LangGraph Cloud.
+## Multi-Agent System for A/B Testing in Resume Generation Workflow
 
-> [!TIP]
-> If you would rather use `pyproject.toml` for managing dependencies in your LangGraph Cloud project, please check out [this repository](https://github.com/langchain-ai/langgraph-example-pyproject).
+### Project Overview
+We are building a multi-agent system using LangGraph to support A/B testing within a resume generation workflow. The system will enable us to test different strategies (e.g., templates, tones, keyword targeting) by having agents handle distinct sub-tasks and coordinate through a graph-based architecture. This setup allows for dynamic routing, experiment tracking, and improved evaluation of resume effectiveness.
 
-[LangGraph](https://github.com/langchain-ai/langgraph) is a library for building stateful, multi-actor applications with LLMs. The main use cases for LangGraph are conversational agents, and long-running, multi-step LLM applications or any LLM application that would benefit from built-in support for persistent checkpoints, cycles and human-in-the-loop interactions (ie. LLM and human collaboration).
+### Objectives 
+Design and implement a LangGraph-powered system that: 
+- Coordinates multiple agents responsible for various resume generation sub-tasks 
+- Supports parallel A/B testing workflows
+- Tracks performance and feedback for each version
+- Logs all agent interactions for analysis and reproducibility
 
-LangGraph shortens the time-to-market for developers using LangGraph, with a one-liner command to start a production-ready HTTP microservice for your LangGraph applications, with built-in persistence. This lets you focus on the logic of your LangGraph graph, and leave the scaling and API design to us. The API is inspired by the OpenAI assistants API, and is designed to fit in alongside your existing services.
 
-In order to deploy this agent to LangGraph Cloud you will want to first fork this repo. After that, you can follow the instructions [here](https://langchain-ai.github.io/langgraph/cloud/) to deploy to LangGraph Cloud.
+## Setting Up the Conda Environment
 
-## Hi KenZ
-Hello hello
+Follow the steps below to create and activate a new conda environment, and install all required dependencies.
+
+### 1. Create a New Conda Environment
+
+Use the command below to create a new environment.
+
+```bash
+conda create --name langgraph-resume python=3.10
+```
+
+### 2. Activate the Environment
+
+```bash
+conda activate langgraph-resume
+```
+
+### 3. Install Required Packages
+
+Make sure your terminal is in the `my_agent` directory of the project (where `requirements.txt` is located), then run:
+
+```bash
+pip install -r requirements.txt
+```
+`
