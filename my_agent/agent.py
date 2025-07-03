@@ -4,7 +4,9 @@ from typing import TypedDict, Literal
 from langgraph.graph import StateGraph, MessageGraph, START, END
 from utils.nodes import call_model, should_continue, tool_node
 from utils.state import AgentState
+from helper_functions import save_graph_image
 
+load_dotenv()
 
 # Define the config
 class GraphConfig(TypedDict):
@@ -51,3 +53,5 @@ workflow.add_edge("action", "agent")
 # This compiles it into a LangChain Runnable,
 # meaning you can use it as you would any other runnable
 graph = workflow.compile()
+
+save_graph_image(graph)
