@@ -6,52 +6,78 @@ from utils.nodes import call_model, should_continue, tool_node
 from utils.state import AgentState
 from helper_functions import save_graph_image
 
+from concurrent.futures import ThreadPoolExecutor
+import json
+
 load_dotenv()
 
-# Define the config
-class GraphConfig(TypedDict):
-    model_name: Literal["anthropic", "openai"]
+
+# Shared State
+class PromptBuilderState(TypedDict):
+    prompt_variant_a: str
+    prompt_variant_b: str
+    input_resume: str
+
+# A Agent: Concise, metrics-driven
+def build_prompt_a(state: PromptBuilderState) -> PromptBuilderState:
+    input_text = state["input_resume"]
+    prompt = f"Rephrase this resume concisely with a focus on metrics and achievements:\n\n{input_text}"
+    return {**state, "prompt_variant_a": prompt}
+
+# B Agent: Storytelling style
+def build_prompt_b(state: PromptBuilderState) -> PromptBuilderState:
+    input_text = state["input_resume"]
+    prompt = f"Rewrite this resume section using a narrative style that tells a compelling career story:\n\n{input_text}"
+    return {**state, "prompt_variant_b": prompt}
+
+# Parallel Wrapper
+def parallel_prompt_builders(state: PromptBuilderState) -> PromptBuilderState:
+    with ThreadPoolExecutor() as executor:
+        future_a = executor.submit(build_prompt_a, state)
+        future_b = executor.submit(build_prompt_b, state)
+        result_a = future_a.result()
+        result_b = future_b.result()
+    
+    return {
+        **state,
+        "prompt_variant_a": result_a["prompt_variant_a"],
+        "prompt_variant_b": result_b["prompt_variant_b"]
+    }
+
+if __name__ == "__main__":
+    # Build LangGraph 
+    builder = StateGraph(PromptBuilderState)
+
+    builder.add_node("build_prompts", parallel_prompt_builders)
+
+    builder.add_edge(START, "build_prompts")
+    builder.add_edge("build_prompts", END)
+
+    prompt_graph = builder.compile()
+    save_graph_image(prompt_graph)
 
 
-# Define a new graph
-workflow = StateGraph(AgentState, config_schema=GraphConfig)
+    # Testing
+    json_path = "sample_input.json"
+    try:
+        with open(json_path, "r") as f:
+            resume_data = json.load(f)
 
-# Define the two nodes we will cycle between
-workflow.add_node("agent", call_model)
-workflow.add_node("action", tool_node)
+        input_resume = resume_data["input_resume"]
+    except FileNotFoundError:
+        print(f"Error: {json_path} file was not found.")
+        exit(1)
+    except json.JSONDecodeError as e:
+        print(f"Error: Failed to parse JSON - {e}")
+        exit(1)
 
-# Set the entrypoint as `agent`
-# This means that this node is the first one called
-workflow.set_entry_point("agent")
+    initial_state = {
+        "input_resume": input_resume,
+        "prompt_variant_a": "",
+        "prompt_variant_b": ""
+    }
 
-# We now add a conditional edge
-workflow.add_conditional_edges(
-    # First, we define the start node. We use `agent`.
-    # This means these are the edges taken after the `agent` node is called.
-    "agent",
-    # Next, we pass in the function that will determine which node is called next.
-    should_continue,
-    # Finally we pass in a mapping.
-    # The keys are strings, and the values are other nodes.
-    # END is a special node marking that the graph should finish.
-    # What will happen is we will call `should_continue`, and then the output of that
-    # will be matched against the keys in this mapping.
-    # Based on which one it matches, that node will then be called.
-    {
-        # If `tools`, then we call the tool node.
-        "continue": "action",
-        # Otherwise we finish.
-        "end": END,
-    },
-)
+    result_state = prompt_graph.invoke(initial_state)
 
-# We now add a normal edge from `tools` to `agent`.
-# This means that after `tools` is called, `agent` node is called next.
-workflow.add_edge("action", "agent")
-
-# Finally, we compile it!
-# This compiles it into a LangChain Runnable,
-# meaning you can use it as you would any other runnable
-graph = workflow.compile()
-
-save_graph_image(graph)
+    print("prompt A variant: \n", result_state["prompt_variant_a"])
+    print("prompt B variant: \n", result_state["prompt_variant_b"])
