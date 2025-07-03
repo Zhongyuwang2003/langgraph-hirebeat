@@ -1,10 +1,10 @@
 # Resume AI Agent System
 
-
-## Multi-Agent System for A/B Testing in Resume Generation Workflow
-
 ### Project Overview
 We are building a multi-agent system using LangGraph to support A/B testing within a resume generation workflow. The system will enable us to test different strategies (e.g., templates, tones, keyword targeting) by having agents handle distinct sub-tasks and coordinate through a graph-based architecture. This setup allows for dynamic routing, experiment tracking, and improved evaluation of resume effectiveness.
+
+
+## Multi-Agent System for A/B Testing in Resume Generation Workflow
 
 ### Objectives 
 Design and implement a LangGraph-powered system that: 
