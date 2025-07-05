@@ -9,4 +9,4 @@ def save_graph_image(graph):
     with open(output_path, "wb") as f:
         f.write(img_data)
 
-    print(f"Mermaid graph saved to {output_path.resolve()}")
+    print(f"Mermaid graph saved to {output_path.resolve()}\n")

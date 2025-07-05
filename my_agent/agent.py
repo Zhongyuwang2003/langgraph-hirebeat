@@ -11,6 +11,17 @@ import json
 
 load_dotenv()
 
+# ---------- Shared State ----------
+class SharedState(TypedDict):
+    input_resume: str
+    prompt_a: str
+    prompt_b: str
+    resume_a: str
+    resume_b: str
+
+
+# ---------- Input Intake ----------
+
 # Input Intake Agent: Validates and preprocesses user input
 def input_intake_agent(raw_input: dict) -> dict:
     """
@@ -41,30 +52,28 @@ def input_intake_agent(raw_input: dict) -> dict:
     resume_str = f"{cleaned['name']}\n{cleaned['job_title']}\n{cleaned['experience']}\nSkills: {', '.join(cleaned['skills'])}"
     return {
         "input_resume": resume_str,
-        "prompt_variant_a": "",
-        "prompt_variant_b": ""
+        "prompt_a": "",
+        "prompt_b": ""
     }
 
-# Shared State
-class PromptBuilderState(TypedDict):
-    prompt_variant_a: str
-    prompt_variant_b: str
-    input_resume: str
+
+
+# ---------- Prompt Builder ----------
 
 # A Agent: Concise, metrics-driven
-def build_prompt_a(state: PromptBuilderState) -> PromptBuilderState:
+def build_prompt_a(state: SharedState) -> SharedState:
     input_text = state["input_resume"]
     prompt = f"Rephrase this resume concisely with a focus on metrics and achievements:\n\n{input_text}"
-    return {**state, "prompt_variant_a": prompt}
+    return {**state, "prompt_a": prompt}
 
 # B Agent: Storytelling style
-def build_prompt_b(state: PromptBuilderState) -> PromptBuilderState:
+def build_prompt_b(state: SharedState) -> SharedState:
     input_text = state["input_resume"]
     prompt = f"Rewrite this resume section using a narrative style that tells a compelling career story:\n\n{input_text}"
-    return {**state, "prompt_variant_b": prompt}
+    return {**state, "prompt_b": prompt}
 
-# Parallel Wrapper
-def parallel_prompt_builders(state: PromptBuilderState) -> PromptBuilderState:
+# Parallel prompt builder
+def parallel_prompt_builders(state: SharedState) -> SharedState:
     with ThreadPoolExecutor() as executor:
         future_a = executor.submit(build_prompt_a, state)
         future_b = executor.submit(build_prompt_b, state)
@@ -73,18 +82,46 @@ def parallel_prompt_builders(state: PromptBuilderState) -> PromptBuilderState:
     
     return {
         **state,
-        "prompt_variant_a": result_a["prompt_variant_a"],
-        "prompt_variant_b": result_b["prompt_variant_b"]
+        "prompt_a": result_a["prompt_a"],
+        "prompt_b": result_b["prompt_b"]
     }
+
+
+# ---------- LLM Generator ----------
+
+# Generator function for A/B prompts
+def generate_resume_from_prompt(prompt: str, config: dict) -> str:
+    state = {"messages": [{"role": "user", "content": prompt}]}
+    result = call_model(state, config)
+    return result["messages"][0].content
+
+# Parallel resume generator
+def llm_generator_agent(state: SharedState) -> SharedState:
+    config = {"configurable": {"model_name": "openai"}} 
+
+    with ThreadPoolExecutor() as executor:
+        future_a = executor.submit(generate_resume_from_prompt, state["prompt_a"], config)
+        future_b = executor.submit(generate_resume_from_prompt, state["prompt_b"], config)
+        resume_a = future_a.result()
+        resume_b = future_b.result()
+
+    return {
+        **state,
+        "resume_a": resume_a,
+        "resume_b": resume_b
+    }
+
 
 if __name__ == "__main__":
     # Build LangGraph 
-    builder = StateGraph(PromptBuilderState)
+    builder = StateGraph(SharedState)
 
     builder.add_node("build_prompts", parallel_prompt_builders)
+    builder.add_node("generate_resumes", llm_generator_agent)
 
     builder.add_edge(START, "build_prompts")
-    builder.add_edge("build_prompts", END)
+    builder.add_edge("build_prompts", "generate_resumes")
+    builder.add_edge("generate_resumes", END)
 
     prompt_graph = builder.compile()
     save_graph_image(prompt_graph)
@@ -105,6 +142,10 @@ if __name__ == "__main__":
         exit(1)
 
     result_state = prompt_graph.invoke(initial_state)
+    print("---------- Prompt A Variant ----------")
+    print(f"*Prompt A*\n{result_state['prompt_a']}\n")
+    print(f"*Resume A*\n{result_state['resume_a']}\n")
 
-    print("prompt A variant: \n", result_state["prompt_variant_a"])
-    print("prompt B variant: \n", result_state["prompt_variant_b"])
+    print("---------- Prompt B Variant ----------")
+    print(f"*Prompt B*\n{result_state['prompt_b']}\n")
+    print(f"*Resume B*\n{result_state['resume_b']}\n")
