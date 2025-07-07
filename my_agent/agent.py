@@ -1,4 +1,3 @@
-from dotenv import load_dotenv
 from typing import TypedDict, Literal
 
 from langgraph.graph import StateGraph, MessageGraph, START, END
@@ -9,7 +8,6 @@ from helper_functions import save_graph_image
 from concurrent.futures import ThreadPoolExecutor
 import json
 
-load_dotenv()
 
 # ---------- Shared State ----------
 class SharedState(TypedDict):
