@@ -18,6 +18,7 @@ class SharedState(TypedDict):
     prompt_b: str
     resume_a: str
     resume_b: str
+    evaluation_result: dict
 
 
 # ---------- Input Intake ----------
@@ -111,6 +112,56 @@ def llm_generator_agent(state: SharedState) -> SharedState:
         "resume_b": resume_b
     }
 
+# ---------- Evaluation Agent ----------
+
+def evaluate_resumes(state: SharedState) -> SharedState:
+    resume_a = state["resume_a"]
+    resume_b = state["resume_b"]
+
+    # 构建评分 prompt
+    evaluation_prompt = f"""
+You are a professional resume reviewer. Please evaluate the following two resumes and respond in JSON format like:
+{{
+  "a_score": <score out of 10>,
+  "b_score": <score out of 10>,
+  "winner": "A" or "B",
+  "rationale": "short explanation"
+}}
+
+Resume A:
+{resume_a}
+
+Resume B:
+{resume_b}
+"""
+
+    # 调用 OpenAI 模型
+    config = {"configurable": {"model_name": "openai"}}
+    state_for_eval = {"messages": [{"role": "user", "content": evaluation_prompt}]}
+    result = call_model(state_for_eval, config)
+    content = result["messages"][0].content
+
+    try:
+        import re
+        match = re.search(r"\{.*\}", content, re.DOTALL)
+        if match:
+            json_str = match.group(0)
+            evaluation = json.loads(json_str)
+        else:
+            raise json.JSONDecodeError("No JSON found", content, 0)
+    except json.JSONDecodeError:
+        evaluation = {
+            "a_score": None,
+            "b_score": None,
+            "winner": "Unknown",
+            "rationale": "Failed to parse model output"
+        }
+
+    return {
+        **state,
+        "evaluation_result": evaluation
+    }
+
 
 if __name__ == "__main__":
     # Build LangGraph 
@@ -121,7 +172,9 @@ if __name__ == "__main__":
 
     builder.add_edge(START, "build_prompts")
     builder.add_edge("build_prompts", "generate_resumes")
-    builder.add_edge("generate_resumes", END)
+    builder.add_node("evaluate_resumes", evaluate_resumes)
+    builder.add_edge("generate_resumes", "evaluate_resumes")
+    builder.add_edge("evaluate_resumes", END)
 
     prompt_graph = builder.compile()
     save_graph_image(prompt_graph)
@@ -149,3 +202,6 @@ if __name__ == "__main__":
     print("---------- Prompt B Variant ----------")
     print(f"*Prompt B*\n{result_state['prompt_b']}\n")
     print(f"*Resume B*\n{result_state['resume_b']}\n")
+
+    print("---------- Evaluation Result ----------")
+    print(result_state["evaluation_result"])
