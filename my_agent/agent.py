@@ -112,6 +112,7 @@ def llm_generator_agent(state: SharedState) -> SharedState:
         "resume_b": resume_b
     }
 
+
 # ---------- Evaluation Agent ----------
 
 def evaluate_resumes(state: SharedState) -> SharedState:
@@ -120,20 +121,20 @@ def evaluate_resumes(state: SharedState) -> SharedState:
 
     # 构建评分 prompt
     evaluation_prompt = f"""
-You are a professional resume reviewer. Please evaluate the following two resumes and respond in JSON format like:
-{{
-  "a_score": <score out of 10>,
-  "b_score": <score out of 10>,
-  "winner": "A" or "B",
-  "rationale": "short explanation"
-}}
+        You are a professional resume reviewer. Please evaluate the following two resumes and respond in JSON format like:
+        {{
+        "a_score": <score out of 10>,
+        "b_score": <score out of 10>,
+        "winner": "A" or "B",
+        "rationale": "short explanation"
+        }}
 
-Resume A:
-{resume_a}
+        Resume A:
+        {resume_a}
 
-Resume B:
-{resume_b}
-"""
+        Resume B:
+        {resume_b}
+    """
 
     # 调用 OpenAI 模型
     config = {"configurable": {"model_name": "openai"}}
@@ -169,10 +170,10 @@ if __name__ == "__main__":
 
     builder.add_node("build_prompts", parallel_prompt_builders)
     builder.add_node("generate_resumes", llm_generator_agent)
+    builder.add_node("evaluate_resumes", evaluate_resumes)
 
     builder.add_edge(START, "build_prompts")
     builder.add_edge("build_prompts", "generate_resumes")
-    builder.add_node("evaluate_resumes", evaluate_resumes)
     builder.add_edge("generate_resumes", "evaluate_resumes")
     builder.add_edge("evaluate_resumes", END)
 
@@ -195,6 +196,7 @@ if __name__ == "__main__":
         exit(1)
 
     result_state = prompt_graph.invoke(initial_state)
+
     print("---------- Prompt A Variant ----------")
     print(f"*Prompt A*\n{result_state['prompt_a']}\n")
     print(f"*Resume A*\n{result_state['resume_a']}\n")

@@ -31,7 +31,8 @@ def should_continue(state):
         return "continue"
 
 
-system_prompt = """Be a helpful assistant"""
+system_prompt = """You are a resume evaluation and drafting expert as part of a resume A/B testing pipeline. Your goal is to help evaluate and optimize resume content by comparing different resume versions, analyzing their strengths and weaknesses, and providing actionable feedback. You will focus on improving key aspects of the resume (including, but not limited to, layout, phrasing, skill representation, etc.) based on A/B testing results."""
+
 
 # Define the function that calls the model
 def call_model(state, config):
