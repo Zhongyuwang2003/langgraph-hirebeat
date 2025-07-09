@@ -13,6 +13,35 @@ Design and implement a LangGraph-powered system that:
 - Tracks performance and feedback for each version
 - Logs all agent interactions for analysis and reproducibility
 
+### System Functions
+#### 1. Input Intake Agent
+- Accepts raw user data (name, experience, job title, skills) 
+- Validates completeness and pre-processes input
+
+#### 2. Prompt Builder Agents (A/B Variants)
+- A Agent: Uses a concise, metrics-driven prompt style
+- B Agent: Uses a storytelling, narrative-focused style
+- Each builds a prompt for the LLM based on the same input
+
+#### 3. LLM Generator Agent
+- Takes prompts from A and B branches
+- Calls the language model to generate corresponding resumes
+- Sends output to evaluation agents
+
+#### 4. Evaluation Agents
+- Responsible for scoring the resumes from both A and B branches
+- You will need to define and justify appropriate evaluation metrics (e.g., keyword density, readability, role alignment)
+- Optionally call external resume ranking APIs
+- Store scoring data in experiment logs
+
+#### 5. Logger/Orchestrator Node
+- Records agent paths, inputs, and outputs
+- Helps visualize graph traversal and performance metrics
+
+#### 6. Experiment Manager (Optional Stretch)
+- Dynamically adjusts A/B variants
+- Incorporates user feedback loop (thumbs up/down)
+
 
 ## Setting Up the Conda Environment
 
