@@ -1,6 +1,27 @@
 {
-  "name": " Alice Johnson ",
+  "name": "Alice Johnson",
+  "job_title": "Senior Backend Developer",
   "experience": "3 years in software engineering",
-  "job_title": "senior backend developer",
-  "skills": [" Python ", "Django", " REST APIs "]
+  "summary": "Alice is a backend developer passionate about scalable systems and clean code. She contributes to high-impact projects and fosters strong team collaboration.",
+  "skills": ["python", "django", "rest apis", "postgresql", "docker"],
+  "projects": [
+    {
+      "name": "Inventory Management API",
+      "impact": "Reduced order processing time by 25% through optimized endpoints."
+    },
+    {
+      "name": "Authentication Service",
+      "impact": "Enabled secure logins for over 50,000 monthly users with JWT-based access control."
+    }
+  ],
+  "achievements": [
+    "Improved backend response times by 30%",
+    "Mentored 2 junior engineers",
+    "Streamlined deployment process with Docker"
+  ],
+  "education": "B.S. in Computer Science, UCLA",
+  "certifications": ["AWS Certified Developer"],
+  "tools": ["Git", "GitHub Actions", "Docker", "PostgreSQL"],
+  "soft_skills": ["leadership", "problem-solving"],
+  "languages": ["English"]
 }
