@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 from typing import TypedDict, Literal
 
 from langgraph.graph import StateGraph, MessageGraph, START, END
@@ -7,13 +8,8 @@ from helper_functions import save_graph_image
 
 from concurrent.futures import ThreadPoolExecutor
 import json
-import os
 
-# ---------- Tracing ----------
-os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
-os.environ["LANGCHAIN_TRACING_V2"] = "true" 
-os.environ["LANGCHAIN_PROJECT"] = "resume-agent" 
-
+load_dotenv()
 
 # ---------- Shared State ----------
 class SharedState(TypedDict):
@@ -30,31 +26,45 @@ class SharedState(TypedDict):
 # Input Intake Agent: Validates and preprocesses user input
 def input_intake_agent(raw_input: dict) -> dict:
     """
-    Accepts raw user input and validates required fields:
-    - name
-    - experience
-    - job_title
-    - skills
-
-    Returns a cleaned and preprocessed version of the input.
+    Accepts raw user input and preprocesses it into a structured string resume.
+    Dynamically detects and processes common resume fields.
     """
-    required_fields = ["name", "experience", "job_title", "skills"]
 
-    # Step 1: Validation
-    for field in required_fields:
-        if field not in raw_input or not raw_input[field]:
-            raise ValueError(f"Missing required field: {field}")
+    resume_order = [
+        "name", "job_title", "summary", "experience", "education",
+        "skills", "projects", "achievements", "certifications",
+        "tools", "soft_skills", "languages"
+    ]
 
-    # Step 2: Preprocessing
-    cleaned = {
-        "name": raw_input["name"].strip(),
-        "experience": raw_input["experience"].strip(),
-        "job_title": raw_input["job_title"].strip().title(),
-        "skills": [skill.strip().lower() for skill in raw_input["skills"]],
-    }
+    lines = []
 
-    # Combine fields into a resume string for prompting
-    resume_str = f"{cleaned['name']}\n{cleaned['job_title']}\n{cleaned['experience']}\nSkills: {', '.join(cleaned['skills'])}"
+    for field in resume_order:
+        if field in raw_input and raw_input[field]:
+            value = raw_input[field]
+
+            # ---- Handle nested list-of-dicts fields ----
+            if field == "projects" and isinstance(value, list):
+                lines.append("Projects:")
+                for proj in value:
+                    proj_name = proj.get("name", "").strip()
+                    impact = proj.get("impact", "").strip()
+                    lines.append(f"- {proj_name}: {impact}")
+
+            elif field == "achievements" and isinstance(value, list):
+                lines.append("Achievements:")
+                for ach in value:
+                    lines.append(f"- {ach.strip()}")
+
+            elif isinstance(value, list):
+                capitalized_field = field.replace("_", " ").title()
+                lines.append(f"{capitalized_field}: {', '.join(item.strip() for item in value)}")
+
+            elif isinstance(value, str):
+                capitalized_field = field.replace("_", " ").title()
+                lines.append(f"{capitalized_field}: {value.strip()}")
+
+    resume_str = "\n".join(lines)
+
     return {
         "input_resume": resume_str,
         "prompt_a": "",
@@ -68,13 +78,34 @@ def input_intake_agent(raw_input: dict) -> dict:
 # A Agent: Concise, metrics-driven
 def build_prompt_a(state: SharedState) -> SharedState:
     input_text = state["input_resume"]
-    prompt = f"Rephrase this resume concisely with a focus on metrics and achievements:\n\n{input_text}"
+    prompt = (
+        "You are a resume optimization expert specializing in high-impact, results-driven content.\n\n"
+        "## Your Role:\n"
+        "Transform the following resume into a concise, metrics-focused version that hiring managers can quickly scan.\n\n"
+        "## Requirements:\n"
+        "- Use bullet points for clarity.\n"
+        "- Focus on quantitative metrics (e.g., % improvements, revenue, users, latency).\n"
+        "- Emphasize outcomes and impact using strong action verbs.\n"
+        "- Avoid vague or generic descriptions (e.g., 'helped', 'worked on').\n\n"
+        f"## Resume:\n{input_text}"
+    )
     return {**state, "prompt_a": prompt}
 
 # B Agent: Storytelling style
 def build_prompt_b(state: SharedState) -> SharedState:
     input_text = state["input_resume"]
-    prompt = f"Rewrite this resume section using a narrative style that tells a compelling career story:\n\n{input_text}"
+    prompt = (
+        "You are a professional resume storytelling expert.\n\n"
+        "## Your Role:\n"
+        "Rewrite the following resume as a narrative that highlights the candidate’s career journey, growth, and personal contributions.\n\n"
+        "## Requirements:\n"
+        "- Write in full paragraphs, avoid bullet points.\n"
+        "- Emphasize motivation, career progression, and personal development.\n"
+        "- Include emotional or team-based elements like mentorship, collaboration, and learning.\n"
+        "- Ensure smooth transitions and coherence throughout.\n"
+        "- Avoid repeating any sentence or phrase.\n\n"
+        f"## Resume:\n{input_text}"
+    )
     return {**state, "prompt_b": prompt}
 
 # Parallel prompt builder
@@ -116,7 +147,6 @@ def llm_generator_agent(state: SharedState) -> SharedState:
         "resume_b": resume_b
     }
 
-
 # ---------- Evaluation Agent ----------
 
 def evaluate_resumes(state: SharedState) -> SharedState:
@@ -125,20 +155,20 @@ def evaluate_resumes(state: SharedState) -> SharedState:
 
     # 构建评分 prompt
     evaluation_prompt = f"""
-        You are a professional resume reviewer. Please evaluate the following two resumes and respond in JSON format like:
-        {{
-        "a_score": <score out of 10>,
-        "b_score": <score out of 10>,
-        "winner": "A" or "B",
-        "rationale": "short explanation"
-        }}
+You are a professional resume reviewer. Please evaluate the following two resumes and respond in JSON format like:
+{{
+  "a_score": <score out of 10>,
+  "b_score": <score out of 10>,
+  "winner": "A" or "B",
+  "rationale": "short explanation"
+}}
 
-        Resume A:
-        {resume_a}
+Resume A:
+{resume_a}
 
-        Resume B:
-        {resume_b}
-    """
+Resume B:
+{resume_b}
+"""
 
     # 调用 OpenAI 模型
     config = {"configurable": {"model_name": "openai"}}
@@ -174,10 +204,10 @@ if __name__ == "__main__":
 
     builder.add_node("build_prompts", parallel_prompt_builders)
     builder.add_node("generate_resumes", llm_generator_agent)
-    builder.add_node("evaluate_resumes", evaluate_resumes)
 
     builder.add_edge(START, "build_prompts")
     builder.add_edge("build_prompts", "generate_resumes")
+    builder.add_node("evaluate_resumes", evaluate_resumes)
     builder.add_edge("generate_resumes", "evaluate_resumes")
     builder.add_edge("evaluate_resumes", END)
 
@@ -200,7 +230,6 @@ if __name__ == "__main__":
         exit(1)
 
     result_state = prompt_graph.invoke(initial_state)
-
     print("---------- Prompt A Variant ----------")
     print(f"*Prompt A*\n{result_state['prompt_a']}\n")
     print(f"*Resume A*\n{result_state['resume_a']}\n")
