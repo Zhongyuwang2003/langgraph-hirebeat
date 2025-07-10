@@ -5,13 +5,13 @@ We are building a multi-agent system using LangGraph to support A/B testing with
 
 
 
-## LangGraph Workflow (in `agent.py`)
+## LangGraph Workflow (main logic in `agent.py`)
 
 ### Shared State
-The SharedState is a TypedDict that defines the shared state among different agents in the system. It includes fields such as input_resume, prompt_a, prompt_b, resume_a, resume_b, and evaluation_result.
+The `SharedState` is a `TypedDict` that defines the shared state among different agents in the system. It includes fields such as `input_resume`, `prompt_a`, `prompt_b`, `resume_a`, `resume_b`, and `evaluation_result`.
 
 ### Input Intake Agent
-- **Function**: input_intake_agent
+- **Function**: `input_intake_agent`
 - **Input**: A dictionary containing raw user input with fields like "name", "job_title", "experience", etc.
 - **Output**: A dictionary with the input_resume field, which is a pre - processed structured string resume, and empty prompt_a and prompt_b fields.
 - **How it works**: It takes the raw input and processes it according to a predefined order of resume fields. It handles nested list - of - dicts fields like "projects" and "achievements" and formats the output as a string.
