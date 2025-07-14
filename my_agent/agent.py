@@ -78,35 +78,82 @@ def input_intake_agent(raw_input: dict) -> dict:
 # A Agent: Concise, metrics-driven
 def build_prompt_a(state: SharedState) -> SharedState:
     input_text = state["input_resume"]
-    prompt = (
-        "You are a resume optimization expert specializing in high-impact, results-driven content.\n\n"
-        "## Your Role:\n"
-        "Transform the following resume into a concise, metrics-focused version that hiring managers can quickly scan.\n\n"
-        "## Requirements:\n"
-        "- Use bullet points for clarity.\n"
-        "- Focus on quantitative metrics (e.g., % improvements, revenue, users, latency).\n"
-        "- Emphasize outcomes and impact using strong action verbs.\n"
-        "- Avoid vague or generic descriptions (e.g., 'helped', 'worked on').\n\n"
-        f"## Resume:\n{input_text}"
+
+    resume_prompt_a = (
+        f'''
+        title = Transform a career profile into a concise, metrics-focused professional resume.
+
+        ## Your Role
+        You are a Resume Optimization Strategist, specialized in crafting high-impact, scannable resumes for competitive roles. You excel in condensing complex experience into structured, results-oriented bullet points that emphasize measurable outcomes.
+
+        ## Your Task
+        <Task_Topic>: Resume Condensation and Results-Driven Structuring
+        <Task_Command>: Based on the structured input resume data provided below, reformat the content into a concise professional resume that highlights achievements using metrics, action verbs, and clarity-focused formatting.
+
+        ## Output Application Scenario
+        <Background_Context>: The target audience is recruiters and hiring managers who scan resumes quickly and prioritize measurable impact and clarity.
+        <Primary_Mission>: Output a tightly formatted resume that maximizes the communication of value and impact within minimal space.
+        <Core_Objectives>: Use bullet points, eliminate filler content, apply quantifiable metrics, and preserve all key role outcomes.
+
+        ## Operation Workflow
+        <Requirement>: Follow each workflow stage in order
+        <Execution Logic>:
+        1. <Entry Action>: Analyze the provided resume data to identify core accomplishments and job-critical metrics.
+        2. <Transit Action>: Remove filler language, vague terminology, or subjective framing.
+        3. <Exit Action>: Reconstruct the resume using compact, bullet-based formatting with focus on tangible results and quantifiable achievements.
+
+        ## Output Rules
+        1. Resume must be structured using bullet points in all experience sections.
+        2. Prioritize KPIs, percentages, scale, volume, and results.
+        3. Use professional tone, avoid narrative, and maintain directness.
+        4. Keep formatting clean, using sections: Summary, Experience, Education, Skills.
+        5. Avoid storytelling elements or role evolution explanations.
+
+        ## Input Resume:
+        {input_text}
+        '''
     )
-    return {**state, "prompt_a": prompt}
+    return {**state, "prompt_a": resume_prompt_a}
 
 # B Agent: Storytelling style
 def build_prompt_b(state: SharedState) -> SharedState:
     input_text = state["input_resume"]
-    prompt = (
-        "You are a professional resume storytelling expert.\n\n"
-        "## Your Role:\n"
-        "Rewrite the following resume as a narrative that highlights the candidate’s career journey, growth, and personal contributions.\n\n"
-        "## Requirements:\n"
-        "- Write in full paragraphs, avoid bullet points.\n"
-        "- Emphasize motivation, career progression, and personal development.\n"
-        "- Include emotional or team-based elements like mentorship, collaboration, and learning.\n"
-        "- Ensure smooth transitions and coherence throughout.\n"
-        "- Avoid repeating any sentence or phrase.\n\n"
-        f"## Resume:\n{input_text}"
+    
+    resume_prompt_b = (
+        f'''
+        title = Convert a structured career profile into a storytelling-style resume with humanized narrative and strategic framing.
+
+        ## Your Role
+        You are a Narrative Resume Designer, experienced in transforming professional achievements into coherent, compelling personal stories. You specialize in embedding measurable impact into flowing prose that reflects career progression and personal growth.
+
+        ## Your Task
+        <Task_Topic>: Story-Centered Resume Generation from Structured Data
+        <Task_Command>: Using the structured resume data provided, generate a professional resume in a narrative format. Embed quantifiable accomplishments into clear, human-centered storytelling. Maintain formality but enhance the readability and depth.
+
+        ## Output Application Scenario
+        <Background_Context>: The resume will be used to showcase strategic thinking, adaptability, and depth of experience to hiring teams seeking leadership or vision-driven candidates.
+        <Primary_Mission>: Balance personal voice and storytelling with professional substance and measurable accomplishments.
+        <Core_Objectives>: Present a logical and engaging career narrative while clearly communicating value and outcomes.
+
+        ## Operation Workflow
+        <Requirement>: Follow this workflow in order
+        <Execution Logic>:
+        1. <Entry Action>: Analyze resume content to extract major themes (e.g., growth, innovation, leadership).
+        2. <Transit Action>: Integrate those themes into narrative statements using clear prose with embedded performance data.
+        3. <Exit Action>: Output a fully structured resume with a storytelling voice across all sections, preserving clarity and professionalism.
+
+        ## Output Rules
+        1. Use sentence-based formatting over bullet points (except in skills or tools sections).
+        2. Embed quantitative achievements within narrative (e.g., 'led a product launch that generated $1.2M in ARR').
+        3. Allow light use of first-person phrasing without pronouns (e.g., 'Focused on optimizing...').
+        4. Structure resume using sections: Summary, Experience, Education, Skills, Certifications, etc.
+        5. Avoid redundant or filler words; be vivid but efficient.
+
+        ## Input Resume:
+        {input_text}
+        '''
     )
-    return {**state, "prompt_b": prompt}
+    return {**state, "prompt_b": resume_prompt_b}
 
 # Parallel prompt builder
 def parallel_prompt_builders(state: SharedState) -> SharedState:
@@ -231,12 +278,12 @@ if __name__ == "__main__":
 
     result_state = prompt_graph.invoke(initial_state)
     print("---------- Prompt A Variant ----------")
-    print(f"*Prompt A*\n{result_state['prompt_a']}\n")
-    print(f"*Resume A*\n{result_state['resume_a']}\n")
+    print(f"--- Prompt A --- \n{result_state['prompt_a']}\n")
+    print(f"--- Resume A --- \n{result_state['resume_a']}\n")
 
     print("---------- Prompt B Variant ----------")
-    print(f"*Prompt B*\n{result_state['prompt_b']}\n")
-    print(f"*Resume B*\n{result_state['resume_b']}\n")
+    print(f"--- Prompt B --- \n{result_state['prompt_b']}\n")
+    print(f"--- Resume B --- \n{result_state['resume_b']}\n")
 
     print("---------- Evaluation Result ----------")
     print(result_state["evaluation_result"])
